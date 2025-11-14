@@ -1,0 +1,58 @@
+# --- Build Directories ---
+build/
+build-*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Testing/
+CTestTestfile.cmake
+bin/
+
+# --- Binaries ---
+*.exe
+*.out
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.dylib
+
+# --- Generated Files ---
+compile_commands.json
+compile_commands.yml
+Makefile
+Makefile.*
+*.moc
+*.qrc.dep
+*.qm
+*.autosave
+
+# --- Qt Creator / Qt Build Files ---
+*.user
+*.user.*
+*.pro.user
+*.qmake.stash
+
+# --- IDE / Editor Files ---
+# VSCode
+.vscode/
+.vscode/*.*
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# CLion / JetBrains
+.idea/
+*.iml
+
+# Neovim / LSP
+.cache/
+.clangd
+.clangd/
+.clang-tidy
+.clang-format
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
