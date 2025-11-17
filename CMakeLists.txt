@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Put the built binary into ./bin (like your Makefile)
+# Output binary to ./bin
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 # Symlink compile_commands.json to project root
@@ -22,31 +22,40 @@ add_custom_target(
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GIO REQUIRED gio-2.0)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+# Qt6 (Widgets + DBus)
+find_package(Qt6 REQUIRED COMPONENTS Widgets DBus)
 
-# Source
+# Source files
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(SOURCES ${SRC_DIR}/main.cpp)
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+# Add executable
+qt6_add_executable(${PROJECT_NAME} ${SOURCES})
 
-# Add include dirs and compile flags from pkg-config
+# Include directories from pkg-config
 target_include_directories(${PROJECT_NAME} PRIVATE ${GIO_INCLUDE_DIRS})
 target_compile_options(${PROJECT_NAME} PRIVATE ${GIO_CFLAGS_OTHER})
 # Link libraries from pkg-config
 target_link_libraries(${PROJECT_NAME} PRIVATE ${GIO_LIBRARIES})
 
-# Qt6
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
+# Link Qt6 libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::DBus)
 
-# Some convenient compile warnings (similar to -Wall)
+# Enable MOC for Q_OBJECT classes
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    AUTOMOC ON
+    AUTORCC ON
+    AUTOUIC ON
+)
+
+# Compile warnings
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
 
-# Install target (will install to ${CMAKE_INSTALL_PREFIX}/bin)
+# Install target
 install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION bin)
 
-# Optional: a simple "run" target (only when building with CMake)
+# Optional: "run" target
 add_custom_target(run
     COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}
     DEPENDS ${PROJECT_NAME}
@@ -54,7 +63,7 @@ add_custom_target(run
     COMMENT "Running ${PROJECT_NAME}"
 )
 
-# Optional: a simple clean target to remove the generated bin folder
+# Optional: "dist-clean" target
 add_custom_target(dist-clean
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_SOURCE_DIR}/bin
     COMMENT "Remove ${CMAKE_SOURCE_DIR}/bin (like make clean)"
