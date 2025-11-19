@@ -16,6 +16,7 @@
 #include <QFile>
 #include <QStandardPaths>
 #include <QDir>
+#include <algorithm>
 
 const char* HOTKEY_BUS_NAME   = "org.phnk.TabFixHotkey";
 const char* HOTKEY_OBJECT_PATH= "/org/phnk/TabFixHotkey";
@@ -127,6 +128,10 @@ std::vector<WindowInfo> getWindows(GDBusConnection* conn) {
         }
     }
 
+    std::sort(windows.begin(), windows.end(), [](const WindowInfo &a, const WindowInfo &b) {
+        return a.title < b.title;
+    });
+
     g_variant_iter_free(iter);
     g_variant_unref(result);
 
@@ -137,7 +142,7 @@ class UI : public QWidget {
     Q_OBJECT
 public:
     UI(GDBusConnection* c) : conn(c) {
-        setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
+        setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::Window);
     }
 
     void populateWindows(const std::vector<WindowInfo>& windows) {
@@ -251,7 +256,6 @@ private:
     GDBusConnection* conn = nullptr;
 };
 
-// ---- D-Bus adaptor ----
 class HotkeyAdaptor : public QObject {
     Q_OBJECT
 public:
@@ -262,7 +266,6 @@ public:
         }
         bus.registerObject(HOTKEY_OBJECT_PATH, this, QDBusConnection::ExportAllSlots);
     }
-
 public slots:
     void ShowWindow() {
         if (!window->isVisible()) {
@@ -273,7 +276,6 @@ public slots:
             window->activateWindow();
         }
     }
-
 private:
     UI* window;
     GDBusConnection* connection;
