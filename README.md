@@ -33,8 +33,17 @@ cd tab_fix_linux
 
 3. Install any additional dependencies as specified in the project files.
 
+4. Build and run
+```bash
+cmake -S . -B build
+cmake --build build
+./bin/tabfix_client
+```
+
 ## Usage
-(Usage instructions will depend on the specific implementation - please refer to the source code or add specific usage examples here)
+1. Start the program.
+2. Bind a global hotkey in Settings -> Keyboard -> Keyboard shortcuts -> Custom Shortcut
+3. Command: `qdbus org.phnk.TabFixHotkey /org/phnk/TabFixHotkey ShowWindow`
 
 ## How It Works
 Unlike the traditional Alt+Tab behavior which cycles through windows based on recent usage, `tab_fix_linux` uses the gse-window-api to:
@@ -62,6 +71,5 @@ It may work on other Linux distributions and configurations, but compatibility i
 - [tab_fix](https://github.com/phnk/tab_fix) - Original Windows version
 - [gse-window-api](https://github.com/phnk/gse-window-api) - GNOME Shell window management API
 
-
 ## Author
-**[phnk](https://github.com/phnk)**
+[phnk](https://github.com/phnk)
