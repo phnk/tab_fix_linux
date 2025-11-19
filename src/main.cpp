@@ -16,6 +16,7 @@
 #include <QFile>
 #include <QStandardPaths>
 #include <QDir>
+#include <QTimer>
 #include <algorithm>
 
 const char* HOTKEY_BUS_NAME   = "org.phnk.TabFixHotkey";
@@ -142,18 +143,58 @@ class UI : public QWidget {
     Q_OBJECT
 public:
     UI(GDBusConnection* c) : conn(c) {
-        setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::Window);
+        // Window flags: frameless tool window that stays on top and doesn't appear in taskbar
+        setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint);
+
+        // Top-level layout for the UI widget. It simply contains the frame and ensures frame fills the window.
+        QVBoxLayout* outerLayout = new QVBoxLayout(this);
+        outerLayout->setContentsMargins(0, 0, 0, 0);
+        outerLayout->setSpacing(0);
+
+        // Frame: the visible background rectangle. We will add all rows INTO this frame.
+        frame = new QFrame(this);
+        frame->setMaximumWidth(1200);
+        frame->setObjectName("mainFrame");
+        frame->setStyleSheet(
+            "QFrame#mainFrame { "
+            "  background-color: rgb(5,22,80); "
+            "  border: 2px solid rgb(5,22,80); "   // reserve 2px
+            "}");
+        frame->setFrameShape(QFrame::NoFrame);
+
+        // rowsLayout is attached to the frame and will hold the rows.
+        rowsLayout = new QVBoxLayout(frame);
+        rowsLayout->setContentsMargins(10, 10, 10, 10);
+        rowsLayout->setSpacing(8);
+
+        // Put the frame into the outer layout so it fills the whole UI.
+        outerLayout->addWidget(frame);
+        setLayout(outerLayout);
+    }
+
+    void flashError() {
+        frame->setStyleSheet(
+            "QFrame#mainFrame { "
+            "  background-color: rgb(5,22,80); "
+            "  border: 2px solid red; "
+            "}"
+        );
+
+        QTimer::singleShot(200, this, [this]() {
+            frame->setStyleSheet(
+                "QFrame#mainFrame { "
+                "  background-color: rgb(5,22,80); "
+                "  border: 2px solid rgb(5,22,80); "
+                "}"
+            );
+        });
     }
 
     void populateWindows(const std::vector<WindowInfo>& windows) {
-        clearLayout();
-        keyToWindowIndex.clear();
+        clearRows();                // clear previous rows inside frame
+        keyToWindowIndex.clear();   // reset mapping
+
         std::map<QChar,int> firstCharCounts;
-
-        QVBoxLayout* mainLayout = new QVBoxLayout(this);
-        mainLayout->setContentsMargins(10, 10, 10, 10);
-        mainLayout->setSpacing(8);
-
         int iconSize = TEXT_SIZE;
 
         for (const auto &w : windows) {
@@ -175,12 +216,13 @@ public:
                 .arg(QString::fromStdString(w.title))
                 .arg(className);
 
-            QWidget* row = new QWidget(this);
+            // Create a row whose parent is the FRAME (not the top-level UI)
+            QWidget* row = new QWidget(frame);
             QHBoxLayout* rowLayout = new QHBoxLayout(row);
             rowLayout->setContentsMargins(0,0,0,0);
             rowLayout->setSpacing(10);
 
-            // Icon
+            // Icon (same code)
             QStringList iconParts = QString::fromStdString(w.icon).split(",");
             QPixmap pix = loadWindowIcon(iconParts, ":/icons/default_app.png", iconSize);
             QLabel* iconLabel = new QLabel(row);
@@ -193,24 +235,21 @@ public:
             textLabel->setStyleSheet("color: white; font-size: 32px; font-weight: bold; font-family: monospace;");
             rowLayout->addWidget(textLabel);
 
-            mainLayout->addWidget(row);
+            // Add the row into rowsLayout (the frame's layout)
+            rowsLayout->addWidget(row);
         }
 
-        setLayout(mainLayout);
+        // Force layout recalculation and then center correctly
+        frame->adjustSize();
+        adjustSize();            // ensure top-level widget sizes to contents
         showCentered();
     }
 
 protected:
-    void paintEvent(QPaintEvent*) override {
-        QPainter painter(this);
-        painter.setBrush(QColor{5, 22, 80});
-        painter.drawRect(rect());
-    }
-
     void keyPressEvent(QKeyEvent* event) override {
         if (event->key() == Qt::Key_Escape) {
             hide();
-            clearLayout();
+            clearRows();
             buffer.clear();
         } else {
             buffer += event->text().toLower().toStdString();
@@ -222,36 +261,43 @@ protected:
                 if (conn) ::activateWindow(conn, index);
             } else if (buffer.length() >= 2) {
                 buffer.clear();
+                flashError();
             }
         }
     }
 
 private:
     void showCentered() {
-        adjustSize(); // recalc size based on layout
-        setFixedSize(size()); // optional: prevent resizing
+        // Use sizes computed from the frame (which contains rows)
+        adjustSize();
+        // optional fix the size to avoid jitter:
+        setFixedSize(size());
         QRect screen = QGuiApplication::primaryScreen()->geometry();
-        move(screen.center() - rect().center()); // use rect(), not frameGeometry()
-        show();
+        move(screen.center() - rect().center());
+        if (!isVisible()) show();
         raise();
         activateWindow();
     }
 
-    void clearLayout() {
-        if (layout()) {
-            QLayoutItem* item;
-            while ((item = layout()->takeAt(0)) != nullptr) {
-                delete item->widget();
-                delete item;
+    void clearRows() {
+        // Remove all widgets from rowsLayout (frame's layout)
+        if (!rowsLayout) return;
+        QLayoutItem* item;
+        while ((item = rowsLayout->takeAt(0)) != nullptr) {
+            if (QWidget* w = item->widget()) {
+                w->hide();
+                delete w;
             }
-            delete layout();
+            delete item;
         }
     }
 
 public:
     std::unordered_map<std::string,int> keyToWindowIndex;
+    QFrame* frame;
 
 private:
+    QVBoxLayout* rowsLayout = nullptr; // layout inside the frame
     std::string buffer;
     GDBusConnection* conn = nullptr;
 };
