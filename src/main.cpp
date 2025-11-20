@@ -18,6 +18,7 @@
 #include <QDir>
 #include <QTimer>
 #include <algorithm>
+#include <QGraphicsDropShadowEffect>
 
 const char* HOTKEY_BUS_NAME   = "org.phnk.TabFixHotkey";
 const char* HOTKEY_OBJECT_PATH= "/org/phnk/TabFixHotkey";
@@ -143,56 +144,50 @@ class UI : public QWidget {
     Q_OBJECT
 public:
     UI(GDBusConnection* c) : conn(c) {
-        // Window flags: frameless tool window that stays on top and doesn't appear in taskbar
         setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint);
+        setAttribute(Qt::WA_TranslucentBackground);
 
-        // Top-level layout for the UI widget. It simply contains the frame and ensures frame fills the window.
         QVBoxLayout* outerLayout = new QVBoxLayout(this);
-        outerLayout->setContentsMargins(0, 0, 0, 0);
+        outerLayout->setContentsMargins(25, 25, 25, 25);
         outerLayout->setSpacing(0);
 
-        // Frame: the visible background rectangle. We will add all rows INTO this frame.
         frame = new QFrame(this);
         frame->setMaximumWidth(1200);
         frame->setObjectName("mainFrame");
         frame->setStyleSheet(
             "QFrame#mainFrame { "
             "  background-color: rgb(5,22,80); "
-            "  border: 2px solid rgb(5,22,80); "   // reserve 2px
             "}");
         frame->setFrameShape(QFrame::NoFrame);
 
-        // rowsLayout is attached to the frame and will hold the rows.
         rowsLayout = new QVBoxLayout(frame);
         rowsLayout->setContentsMargins(10, 10, 10, 10);
         rowsLayout->setSpacing(8);
 
-        // Put the frame into the outer layout so it fills the whole UI.
+        shadow = new QGraphicsDropShadowEffect(frame);
+        shadow->setBlurRadius(40);
+        shadow->setOffset(0, 0);
+        shadow->setColor(QColor(255, 80, 80, 200));
+        shadow->setEnabled(false);
+        setGraphicsEffect(shadow);
+
         outerLayout->addWidget(frame);
         setLayout(outerLayout);
     }
 
     void flashError() {
-        frame->setStyleSheet(
-            "QFrame#mainFrame { "
-            "  background-color: rgb(5,22,80); "
-            "  border: 2px solid red; "
-            "}"
-        );
+        shadow->setEnabled(true);
+        shadow->setBlurRadius(40);
+        shadow->setColor(QColor(255, 80, 80, 255));
 
         QTimer::singleShot(200, this, [this]() {
-            frame->setStyleSheet(
-                "QFrame#mainFrame { "
-                "  background-color: rgb(5,22,80); "
-                "  border: 2px solid rgb(5,22,80); "
-                "}"
-            );
+            shadow->setEnabled(false);
         });
     }
 
     void populateWindows(const std::vector<WindowInfo>& windows) {
-        clearRows();                // clear previous rows inside frame
-        keyToWindowIndex.clear();   // reset mapping
+        clearRows();
+        keyToWindowIndex.clear();
 
         std::map<QChar,int> firstCharCounts;
         int iconSize = TEXT_SIZE;
@@ -216,13 +211,11 @@ public:
                 .arg(QString::fromStdString(w.title))
                 .arg(className);
 
-            // Create a row whose parent is the FRAME (not the top-level UI)
             QWidget* row = new QWidget(frame);
             QHBoxLayout* rowLayout = new QHBoxLayout(row);
             rowLayout->setContentsMargins(0,0,0,0);
             rowLayout->setSpacing(10);
 
-            // Icon (same code)
             QStringList iconParts = QString::fromStdString(w.icon).split(",");
             QPixmap pix = loadWindowIcon(iconParts, ":/icons/default_app.png", iconSize);
             QLabel* iconLabel = new QLabel(row);
@@ -230,18 +223,15 @@ public:
             iconLabel->setFixedSize(iconSize, iconSize);
             rowLayout->addWidget(iconLabel);
 
-            // Text
             QLabel* textLabel = new QLabel(labelText, row);
             textLabel->setStyleSheet("color: white; font-size: 32px; font-weight: bold; font-family: monospace;");
             rowLayout->addWidget(textLabel);
 
-            // Add the row into rowsLayout (the frame's layout)
             rowsLayout->addWidget(row);
         }
 
-        // Force layout recalculation and then center correctly
         frame->adjustSize();
-        adjustSize();            // ensure top-level widget sizes to contents
+        adjustSize();
         showCentered();
     }
 
@@ -268,9 +258,7 @@ protected:
 
 private:
     void showCentered() {
-        // Use sizes computed from the frame (which contains rows)
         adjustSize();
-        // optional fix the size to avoid jitter:
         setFixedSize(size());
         QRect screen = QGuiApplication::primaryScreen()->geometry();
         move(screen.center() - rect().center());
@@ -280,7 +268,6 @@ private:
     }
 
     void clearRows() {
-        // Remove all widgets from rowsLayout (frame's layout)
         if (!rowsLayout) return;
         QLayoutItem* item;
         while ((item = rowsLayout->takeAt(0)) != nullptr) {
@@ -297,9 +284,10 @@ public:
     QFrame* frame;
 
 private:
-    QVBoxLayout* rowsLayout = nullptr; // layout inside the frame
+    QVBoxLayout* rowsLayout = nullptr;
     std::string buffer;
     GDBusConnection* conn = nullptr;
+    QGraphicsDropShadowEffect* shadow = nullptr;
 };
 
 class HotkeyAdaptor : public QObject {
