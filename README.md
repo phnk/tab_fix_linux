@@ -2,9 +2,7 @@
 Linux port of [tab_fix](https://github.com/phnk/tab_fix) - changing the functionality of Alt+Tab to custom keyboard binds for window switching. This is an early version and there are bugs.
 
 ## Known Bugs
-```
-1. The discord icon does not display.
-```
+Currently none. Please report issues you find in issues.
 
 ## Overview
 `tab_fix_linux` provides an alternative to the traditional Alt+Tab window switching behavior on Linux systems. Instead of cycling through windows in a stack, this tool allows you to bind specific windows to keyboard shortcuts for instant access.

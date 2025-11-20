@@ -37,7 +37,21 @@ struct WindowInfo {
 QPixmap loadWindowIcon(const QStringList &iconNames, const QString &fallbackName = ":/icons/default_app.png", int size = 32) {
     QPixmap pix;
 
+    QStringList namesToTry;
     for (const QString &name : iconNames) {
+        namesToTry << name;
+
+        QString lowerName = name.toLower();
+        if (lowerName == "discord") {
+            namesToTry << "com.discordapp.Discord";
+        } else if (lowerName == "slack") {
+            namesToTry << "com.slack.Slack";
+        } else if (lowerName == "spotify") {
+            namesToTry << "com.spotify.Client";
+        }
+    }
+
+    for (const QString &name : namesToTry) {
         QIcon icon = QIcon::fromTheme(name);
         if (!icon.isNull()) {
             pix = icon.pixmap(size, size);
@@ -45,10 +59,36 @@ QPixmap loadWindowIcon(const QStringList &iconNames, const QString &fallbackName
         }
     }
 
-    for (const QString &dir : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-        for (const QString &name : iconNames) {
-            QString path = QDir(dir).filePath(QString("icons/hicolor/48x48/apps/%1.png").arg(name));
-            if (QFile::exists(path) && pix.load(path)) return pix;
+    QStringList searchPaths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+    QString home = QDir::homePath();
+    searchPaths << home + "/.local/share/flatpak/exports/share";
+    searchPaths << "/var/lib/flatpak/exports/share";
+
+    QStringList iconSizes = {"48x48", "256x256", "128x128", "scalable"};
+
+    for (const QString &dir : searchPaths) {
+        for (const QString &iconSize : iconSizes) {
+            for (const QString &name : namesToTry) {
+                QString path = QDir(dir).filePath(QString("icons/hicolor/%1/apps/%2.png").arg(iconSize, name));
+                if (QFile::exists(path) && pix.load(path)) {
+                    return pix.scaled(size, size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                }
+            }
+        }
+    }
+
+    QStringList appDirs = {"/usr/share", home + "/.local/share"};
+    for (const QString &baseDir : appDirs) {
+        for (const QString &name : namesToTry) {
+            QString path = QString("%1/%2/%3.png").arg(baseDir, name, name);
+            if (QFile::exists(path) && pix.load(path)) {
+                return pix.scaled(size, size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            }
+
+            path = QString("%1/pixmaps/%2.png").arg(baseDir, name);
+            if (QFile::exists(path) && pix.load(path)) {
+                return pix.scaled(size, size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            }
         }
     }
 
