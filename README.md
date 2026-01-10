@@ -14,18 +14,22 @@ This project requires [gse-window-api](https://github.com/phnk/gse-window-api), 
 
 ## Installation
 ### Prerequisites
+1. qt6
+2. qt6-tools
+3. gdm
+4. gnome
 
 1. Install the gse-window-api GNOME Shell extension:
 ```bash
 # Clone the gse-window-api repository
-git clone https://github.com/phnk/gse-window-api.git
+git clone git@github.com:phnk/gse-window-api.git
 
 # Follow the installation instructions in the gse-window-api README
 ```
 
 2. Clone this repository:
 ```bash
-git clone https://github.com/phnk/tab_fix_linux.git
+git clone git@github.com:phnk/tab_fix_linux.git
 cd tab_fix_linux
 ```
 
@@ -33,15 +37,26 @@ cd tab_fix_linux
 
 4. Build and run
 ```bash
-cmake -S . -B build
-cmake --build build
-./bin/tabfix_client
+make
+QT_QPA_PLATFORM=xcb ./bin/tabfix_client
 ```
 
 ## Usage
 1. Start the program.
 2. Bind a global hotkey in Settings -> Keyboard -> Keyboard shortcuts -> Custom Shortcut
-3. Command: `qdbus org.phnk.TabFixHotkey /org/phnk/TabFixHotkey ShowWindow`
+3. Command: `qdbus6 org.phnk.TabFixHotkey /org/phnk/TabFixHotkey ShowWindow`
+
+## Autostart
+Can autostart by adding the file `tabfix.desktop` to your autostart directory with the entry:
+```
+[Desktop Entry]
+Type=Application
+Name=TabFix Client
+Exec=env QT_QPA_PLATFORM=xcb /path/to/tabfix_client
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+```
 
 ## How It Works
 Unlike the traditional Alt+Tab behavior which cycles through windows based on recent usage, `tab_fix_linux` uses the gse-window-api to:
@@ -60,8 +75,9 @@ Please feel free to submit issues or pull requests.
 
 ## Platform Support
 This tool has only been tested on:
-- **OS**: Ubuntu
-- **Display Server**: Wayland
+- **OS**: Arch
+- **Display Server**: gdm and Gnome
+- **QT version**: Qt6
 
 It may work on other Linux distributions and configurations, but compatibility is not guaranteed.
 
