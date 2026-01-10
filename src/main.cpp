@@ -12,13 +12,13 @@
 #include <QHBoxLayout>
 #include <unordered_map>
 #include <map>
-#include <cstdlib>
 #include <QFile>
 #include <QStandardPaths>
 #include <QDir>
 #include <QTimer>
 #include <algorithm>
 #include <QGraphicsDropShadowEffect>
+#include <QWindow>
 
 const char* HOTKEY_BUS_NAME   = "org.phnk.TabFixHotkey";
 const char* HOTKEY_OBJECT_PATH= "/org/phnk/TabFixHotkey";
@@ -184,7 +184,7 @@ class UI : public QWidget {
     Q_OBJECT
 public:
     UI(GDBusConnection* c) : conn(c) {
-        setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint);
+        setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint);
         setAttribute(Qt::WA_TranslucentBackground);
 
         QVBoxLayout* outerLayout = new QVBoxLayout(this);
@@ -300,9 +300,18 @@ private:
     void showCentered() {
         adjustSize();
         setFixedSize(size());
-        QRect screen = QGuiApplication::primaryScreen()->geometry();
-        move(screen.center() - rect().center());
+
+        QScreen *primaryScreen = QGuiApplication::primaryScreen();
+        QRect screenGeometry = primaryScreen->geometry();
+
         if (!isVisible()) show();
+
+        // Set screen after showing
+        if (windowHandle() && primaryScreen) {
+            windowHandle()->setScreen(primaryScreen);
+        }
+
+        move(screenGeometry.center() - rect().center());
         raise();
         activateWindow();
     }
@@ -342,13 +351,11 @@ public:
     }
 public slots:
     void ShowWindow() {
-        if (!window->isVisible()) {
+        window->hide();
+        QTimer::singleShot(1, [this]() {
             auto windows = getWindows(connection);
             window->populateWindows(windows);
-        } else {
-            window->raise();
-            window->activateWindow();
-        }
+        });
     }
 private:
     UI* window;
@@ -374,4 +381,4 @@ int main(int argc, char** argv) {
     return ret;
 }
 
-#include "main.moc"
+#include "moc_main.cpp"

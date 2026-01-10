@@ -22,8 +22,6 @@ bin/
 # --- Generated Files ---
 compile_commands.json
 compile_commands.yml
-Makefile
-Makefile.*
 *.moc
 *.qrc.dep
 *.qm
