@@ -19,7 +19,7 @@ This project requires [gse-window-api](https://github.com/phnk/gse-window-api), 
 3. gdm
 4. gnome
 
-1. Install the gse-window-api GNOME Shell extension:
+5. Install the gse-window-api GNOME Shell extension:
 ```bash
 # Clone the gse-window-api repository
 git clone git@github.com:phnk/gse-window-api.git
@@ -27,15 +27,15 @@ git clone git@github.com:phnk/gse-window-api.git
 # Follow the installation instructions in the gse-window-api README
 ```
 
-2. Clone this repository:
+6. Clone this repository:
 ```bash
 git clone git@github.com:phnk/tab_fix_linux.git
 cd tab_fix_linux
 ```
 
-3. Install any additional dependencies as specified in the project files.
+7. Install any additional dependencies as specified in the project files.
 
-4. Build and run
+8. Build and run
 ```bash
 make
 QT_QPA_PLATFORM=xcb ./bin/tabfix_client
